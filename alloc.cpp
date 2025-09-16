@@ -1,6 +1,8 @@
 #include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -15,10 +17,17 @@
     #define DEBUG_PRINT(...) (void)0
 #endif
 
+#define ERROR_MSG(format, ...) \
+    fprintf(stderr, \
+            "In " GREEN("%s:%d") ", " YELLOW("%s") ".\n" format "\n", \
+            __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__); fflush(stderr);
+
+ssize_t file_byte_size(const char * const filename);
 char * read_file_to_buf(char * filename, size_t * buf_len);
 ssize_t count_needle_in_haystack(char * haystack, size_t haystack_len, char needle);
 ssize_t replace_needle_in_haystack(char * haystack, size_t haystack_len, char src, char dst);
 char ** split_buf_to_ptr_array(char * buf, size_t buf_len, size_t * line_count);
+void sort_ptr_onegin(char ** ptr_array, size_t line_count);
 
 int main(int argc, char * argv[]) {
     if (argc < 2){
@@ -35,43 +44,61 @@ int main(int argc, char * argv[]) {
     }
 
     printf("Было получено %zu байтов (с учетом \\0)", buf_len);
-
-    printf("%s", buf);
-
     printf("\n------------------------------\n");
 
     size_t line_count = 0;
     char ** ptr_array = split_buf_to_ptr_array(buf, buf_len, &line_count);
 
+    if (ptr_array == NULL) {
+        printf("Произошла ошибка, смотри stderr");
+        return 1;
+    }
+
     for (size_t i = 0; i < line_count; ++i){
-        printf("%s\n", ptr_array[i]);
+        printf("%zu (%p):[%s]\n", i, ptr_array[i], ptr_array[i]);
     }
 
     printf("line count is %zu\n", line_count);
 
+    printf("\n------------------------------\n");
+    sort_ptr_onegin(ptr_array, line_count);
+
+    for (size_t i = 0; i < line_count; ++i){
+        printf("%zu (%p):[%s]\n", i, ptr_array[i], ptr_array[i]);
+    }
+
     free(buf);
     free(ptr_array);
-
     return 0;
+}
+
+ssize_t file_byte_size(const char * const filename) {
+    struct stat file_info = {};
+
+    if (stat(filename, &file_info) == -1) {
+        fprintf(stderr, "Не удалось получить информацию о файле %s\n", filename);
+        perror("");
+        return -1;
+    }
+
+    return (ssize_t) file_info.st_size;
 }
 
 char * read_file_to_buf(char * filename, size_t * buf_len) {
     int fd = open(filename, O_RDONLY);
 
     if (fd == -1) {
-        perror("Не удалось открыть файл");
+        fprintf(stderr, "Не удалось получить информацию о файле %s\n", filename);
+        perror("");
         return NULL;
     }
 
-    struct stat file_info = {};
-
-    if (stat(filename, &file_info) == -1) {
-        close(fd);
-        perror("Не удалось получить информацию о файле");
+    ssize_t byte_len = 0;
+    if ((byte_len = file_byte_size(filename)) <= 0) {
+        // Сообщение об ошибке уже выдала file_byte_size
         return NULL;
     }
 
-    size_t byte_len = (size_t) file_info.st_size;
 
     // Добавляем +1 чтобы при вводе поместился '\0'
     char * buff = (char *) calloc(byte_len + 1, sizeof(char));
@@ -183,5 +210,35 @@ char ** split_buf_to_ptr_array(char * buf, size_t buf_len, size_t * line_count) 
         }
     }
 
+    *line_count = ptr_array_index;
+    ptr_array = (char **) realloc(ptr_array, (ptr_array_index + 1) * sizeof(ptr_array));
+
     return ptr_array;
+}
+
+void ptr_swp(char ** ptr1, char ** ptr2) {
+    assert(ptr1 != NULL     && "Ptr1 must be not null pointer");
+    assert(ptr2 != NULL     && "Ptr2 must be not null pointer");
+    assert(*ptr1 != NULL    && "Ptr1 must be point to not null pointer (string)");
+    assert(*ptr2 != NULL    && "Ptr2 must be point to not null pointer (string)");
+
+    char * tmp_ptr = *ptr1;
+    *ptr1 = *ptr2;
+    *ptr2 = tmp_ptr;
+}
+
+inline char * move_to_not_alpha(char * str) {
+    assert(str != NULL  && "str must be not null ptr (string)");
+
+    while(!isalpha(*str)) ++str;
+    return str;
+}
+
+void sort_ptr_onegin(char ** ptr_array, size_t line_count) {
+    for (size_t i = 0; i < line_count; ++i) {
+        for (size_t j = 0; j < i; ++j) {
+            if (strcmp(move_to_not_alpha(ptr_array[i]), move_to_not_alpha(ptr_array[j])) < 0)
+               ptr_swp(&ptr_array[i], &ptr_array[j]);
+        }
+    }
 }
