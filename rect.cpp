@@ -72,7 +72,9 @@ int read_onegin(char * onegin_rect_arr, char * filename, size_t line_count, size
         DEBUG_PRINT("y is %zu, \tindex is %zu\n", y, y*(max_line_len+1));
         DEBUG_PRINT("pointer is %p\n", onegin_rect_arr + y*(max_line_len+1));
         DEBUG_PRINT("pointer is %p\n", onegin_rect_arr + y*(max_line_len+1));
+
         fgets(onegin_rect_arr + y*(max_line_len+1), (int) max_line_len+1, file);
+
         if (is_empty_after_trim(onegin_rect_arr + y*(max_line_len+1)))
             onegin_rect_arr[y*(max_line_len+1)] = '\0';
     }
@@ -83,14 +85,14 @@ int read_onegin(char * onegin_rect_arr, char * filename, size_t line_count, size
 
 void write_onegin(char * onegin_rect_arr, size_t line_count, size_t max_line_len) {
     for (size_t y = 0; y < line_count; ++y) {
-        printf("%s", onegin_rect_arr + y*(max_line_len+1));
+        printf("(%s)", onegin_rect_arr + y*(max_line_len+1));
     }
 }
 
 void save_onegin(char * filename, char * onegin_rect_arr, size_t line_count, size_t max_line_len) {
     FILE * fp = fopen(filename, "w");
     for (size_t y = 0; y < line_count; ++y) {
-        fprintf(fp, "%s", onegin_rect_arr + y*(max_line_len+1));
+        fprintf(fp, "(%s)", onegin_rect_arr + y*(max_line_len+1));
     }
     fclose(fp);
 }
