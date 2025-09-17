@@ -29,18 +29,17 @@ struct String {
 };
 
 ssize_t file_byte_size(const char * const filename);
-char * read_file_to_buf(char * filename, size_t * buf_len);
-ssize_t count_needle_in_haystack(char * haystack, size_t haystack_len, char needle);
-ssize_t replace_needle_in_haystack(char * haystack, size_t haystack_len, char src, char dst);
-String * split_buf_to_ptr_array(char * buf, size_t buf_len, size_t * line_count);
-void universal_swp(void * ptr1, void * ptr2, void * temp, size_t size);
-inline int string_compare_by_not_alpha_symbols(String str1, String str2);
-inline int reverse_string_compare_by_not_alpha_symbols(String str1, String str2);
-size_t string_print(String * str, FILE * file);
-void sort_struct_onegin(String * string_array, size_t line_count);
-void reverse_sort_struct_onegin(String * string_array, size_t line_count);
-
-void print_all(size_t line_count, String *strings_array);
+char * read_file_to_buf(const char * const filename, size_t * const buf_len);
+ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, const char needle);
+ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, const char src, const char dst);
+String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count);
+void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size);
+int string_compare_by_not_alpha_symbols(const String str1, const String str2);
+int reverse_string_compare_by_not_alpha_symbols(const String str1, const String str2);
+size_t string_print(const String * const str, FILE * const file);
+void sort_struct_onegin(String * const string_array, const size_t line_count);
+void reverse_sort_struct_onegin(String * const string_array, const size_t line_count);
+void print_all(const size_t line_count, String * const strings_array);
 
 int main(int argc, char *argv[])
 {
@@ -86,10 +85,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void print_all(size_t line_count, String *strings_array)
-{
-    for (size_t i = 0; i < line_count; ++i)
-    {
+void print_all(const size_t line_count, String * const strings_array) {
+    for (size_t i = 0; i < line_count; ++i) {
         printf("%zu\t", i);
         string_print(&strings_array[i], stdout);
     }
@@ -109,7 +106,7 @@ ssize_t file_byte_size(const char * const filename) {
 }
 
 // func is allocate buffer, don't forgot free return value
-char * read_file_to_buf(char * filename, size_t * buf_len) {
+char * read_file_to_buf(const char * const filename, size_t * const buf_len) {
     int fd = open(filename, O_RDONLY);
 
     if (fd == -1) {
@@ -147,7 +144,7 @@ char * read_file_to_buf(char * filename, size_t * buf_len) {
     return buff;
 }
 
-ssize_t count_needle_in_haystack(char * haystack, size_t haystack_len, char needle) {
+ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, const char needle) {
     assert(haystack != NULL     && "U must pass haystack to count needles");
     assert(needle   != '\0'       && "U must pass needle other than '\\0'");
 
@@ -175,7 +172,7 @@ ssize_t count_needle_in_haystack(char * haystack, size_t haystack_len, char need
     return count; // Дошли до haystack_len но не встретили '\0'
 }
 
-ssize_t replace_needle_in_haystack(char * haystack, size_t haystack_len, char src, char dst) {
+ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, const char src, const char dst) {
     assert(haystack != NULL     && "U must pass haystack to count needles");
     assert(src      != '\0'          && "U must pass src other than '\\0'");
 
@@ -204,7 +201,7 @@ ssize_t replace_needle_in_haystack(char * haystack, size_t haystack_len, char sr
     return count; // Дошли до haystack_len но не встретили '\0'
 }
 
-String * split_buf_to_ptr_array(char * buf, size_t buf_len, size_t * line_count) {
+String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count) {
     assert(buf != NULL      && "U must pass buffer to split them");
 
     ssize_t lc = -1; // Временная signed переменная чтобы не потерять -1
@@ -268,7 +265,7 @@ String * split_buf_to_ptr_array(char * buf, size_t buf_len, size_t * line_count)
     return strings_array;
 }
 
-void universal_swp(void * ptr1, void * ptr2, void * temp, size_t size) {
+void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size) {
     assert(ptr1 != NULL     && "Ptr1 must be not null pointer");
     assert(ptr2 != NULL     && "Ptr2 must be not null pointer");
     assert(temp != NULL     && "temp must be not null pointer");
@@ -278,53 +275,59 @@ void universal_swp(void * ptr1, void * ptr2, void * temp, size_t size) {
     memcpy(ptr2, temp, size);
 }
 
-int string_compare_by_not_alpha_symbols(String str1, String str2) {
+int string_compare_by_not_alpha_symbols(const String str1, const String str2) {
     assert(str1.start_ptr   != NULL    && "str1 start must be point to not null pointer (string)");
     assert(str1.end_ptr     != NULL    && "str1 end must be point to not null pointer");
     assert(str2.start_ptr   != NULL    && "str2 start must be point to not null pointer (string)");
     assert(str2.end_ptr     != NULL    && "str2 end must be point to not null pointer");
 
+    char * start_ptr1 = str1.start_ptr;
+    char * start_ptr2 = str2.start_ptr;
+
     for (;;) {
-        while (*(str1.start_ptr) != '\0' && !isalpha(*(str1.start_ptr))) ++(str1.start_ptr);
-        while (*(str2.start_ptr) != '\0' && !isalpha(*(str2.start_ptr))) ++(str2.start_ptr);
+        while (*start_ptr1 != '\0' && !isalpha(*start_ptr1)) ++start_ptr1;
+        while (*start_ptr2 != '\0' && !isalpha(*start_ptr2)) ++start_ptr2;
         // Теперь *str1 и *str2 - точно буквы
 
-        if (*(str1.start_ptr) == '\0' && *(str2.start_ptr) == '\0') return 0;   // Обе строки закончились -> одинаковые
-        if (*(str1.start_ptr) == '\0') return -1;                   // Закончилась первая -> она короче
-        if (*(str2.start_ptr) == '\0') return 1;                    // Закончилась вторая -> она короче
+        if (*start_ptr1 == '\0' && *start_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
+        if (*start_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
+        if (*start_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
 
-        if (tolower(*(str1.start_ptr)) != tolower(*(str2.start_ptr)))
-            return tolower(*(str2.start_ptr)) - tolower(*(str1.start_ptr));
+        if (tolower(*start_ptr1) != tolower(*start_ptr2))
+            return tolower(*start_ptr2) - tolower(*start_ptr1);
 
-        ++(str1.start_ptr);
-        ++(str2.start_ptr);
+        ++start_ptr1;
+        ++start_ptr2;
     }
 }
 
-int reverse_string_compare_by_not_alpha_symbols(String str1, String str2) {
+int reverse_string_compare_by_not_alpha_symbols(const String str1, const String str2) {
     assert(str1.start_ptr   != NULL    && "str1 start must be point to not null pointer (string)");
     assert(str1.end_ptr     != NULL    && "str1 end must be point to not null pointer");
     assert(str2.start_ptr   != NULL    && "str2 start must be point to not null pointer (string)");
     assert(str2.end_ptr     != NULL    && "str2 end must be point to not null pointer");
 
+    char * end_ptr1 = str1.end_ptr;
+    char * end_ptr2 = str2.end_ptr;
+
     for (;;) {
-        while (*(str1.end_ptr) != '\0' && !isalpha(*(str1.end_ptr))) --(str1.end_ptr);
-        while (*(str2.end_ptr) != '\0' && !isalpha(*(str2.end_ptr))) --(str2.end_ptr);
+        while (*end_ptr1 != '\0' && !isalpha(*end_ptr1)) --end_ptr1;
+        while (*end_ptr2 != '\0' && !isalpha(*end_ptr2)) --end_ptr2;
         // Теперь *str1 и *str2 - точно буквы
 
-        if (*(str1.end_ptr) == '\0' && *(str2.end_ptr) == '\0') return 0;   // Обе строки закончились -> одинаковые
-        if (*(str1.end_ptr) == '\0') return -1;                   // Закончилась первая -> она короче
-        if (*(str2.end_ptr) == '\0') return 1;                    // Закончилась вторая -> она короче
+        if (*end_ptr1 == '\0' && *end_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
+        if (*end_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
+        if (*end_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
 
-        if (tolower(*(str1.end_ptr)) != tolower(*(str2.end_ptr)))
-            return tolower(*(str2.end_ptr)) - tolower(*(str1.end_ptr));
+        if (tolower(*end_ptr1) != tolower(*end_ptr2))
+            return tolower(*end_ptr2) - tolower(*end_ptr1);
 
-        --(str1.end_ptr);
-        --(str2.end_ptr);
+        --end_ptr1;
+        --end_ptr2;
     }
 }
 
-size_t string_print(String * str, FILE * file) {
+size_t string_print(const String * const str, FILE * const file) {
     size_t count = 0;
 #ifdef _DEBUG
     fprintf(file, "(%p):(%p)[", str, str->start_ptr);
@@ -343,12 +346,10 @@ size_t string_print(String * str, FILE * file) {
     return count;
 }
 
-void sort_struct_onegin(String * string_array, size_t line_count) {
+void sort_struct_onegin(String * const string_array, const size_t line_count) {
     assert(string_array != NULL     && "string_array must be not null pointer");
 
     String temp = {};
-
-    // if (temp == NULL)
 
     for (size_t i = 0; i < line_count; ++i) {
         for (size_t j = 0; j < i; ++j) {
@@ -359,7 +360,7 @@ void sort_struct_onegin(String * string_array, size_t line_count) {
     }
 }
 
-void reverse_sort_struct_onegin(String * string_array, size_t line_count) {
+void reverse_sort_struct_onegin(String * const string_array, const size_t line_count) {
     assert(string_array != NULL     && "string_array must be not null pointer");
 
     String temp = {};
