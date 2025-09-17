@@ -234,11 +234,35 @@ inline char * move_to_not_alpha(char * str) {
     return str;
 }
 
+inline int string_compare_by_not_alpha_symbols(const char * str1, const char * str2) {
+    assert(*str1 != NULL    && "str1 must be point to not null pointer (string)");
+    assert(*str2 != NULL    && "str2 must be point to not null pointer (string)");
+
+    for (;;) {
+        while (*str1 != '\0' && !isalpha(*str1)) ++str1;
+        while (*str2 != '\0' && !isalpha(*str2)) ++str2;
+        // Теперь *str1 и *str2 - точно буквы
+
+        if (*str1 == '\0' && *str2 == '\0') return 0;   // Обе строки закончились -> одинаковые
+        if (*str1 == '\0') return -1;                   // Закончилась первая -> она короче
+        if (*str2 == '\0') return 1;                    // Закончилась вторая -> она короче
+
+        if (tolower(*str1) != tolower(*str2)) return tolower(*str2) - tolower(*str1);
+
+        ++str1;
+        ++str2;
+    }
+}
+
 void sort_ptr_onegin(char ** ptr_array, size_t line_count) {
+    assert(ptr_array != NULL     && "ptr_array must be not null pointer");
+    assert(*ptr_array != NULL    && "ptr_array must be point to not null pointer (string)");
+
     for (size_t i = 0; i < line_count; ++i) {
         for (size_t j = 0; j < i; ++j) {
-            if (strcmp(move_to_not_alpha(ptr_array[i]), move_to_not_alpha(ptr_array[j])) < 0)
-               ptr_swp(&ptr_array[i], &ptr_array[j]);
+            if (string_compare_by_not_alpha_symbols(move_to_not_alpha(ptr_array[i]),
+                                                    move_to_not_alpha(ptr_array[j])) > 0)
+                ptr_swp(&ptr_array[i], &ptr_array[j]);
         }
     }
 }
