@@ -8,43 +8,30 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include "ansi.h"
+#include "io_utils.h"
 
 // Дополнение в терминале ?
 
 #define FREE(ptr)           \
     free(ptr); ptr = NULL;
 
-#ifdef _DEBUG
-    #warning "_DEBUG is ENABLED"
-    #define DEBUG_PRINT(...)                           \
-        fprintf(stderr, __VA_ARGS__); fflush(stderr);
-#else
-    #define DEBUG_PRINT(...) (void)0
-#endif
-
-#define ERROR_MSG(format, ...)                                                  \
-    fprintf(stderr,                                                             \
-            "In " GREEN("%s:%d") ", " YELLOW("%s") ".\n" format,                \
-            __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__); perror("");
-
 struct String {
     char * start_ptr;
     char * end_ptr;
 };
-
-ssize_t file_byte_size(const char * const filename);
 
 // func is allocate buffer, don't forgot free return value
 char * read_file_to_buf(const char * const filename, size_t * const buf_len);
 
 ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, const char needle);
 
-ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, const char src, const char dst);
+ssize_t replace_needle_in_haystack
+    (char * haystack, const size_t haystack_len, const char src, const char dst);
 
 String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count);
 
-void output_strings_array_to_file(FILE * file, const size_t line_count, String * const strings_array);
+void output_strings_array_to_file
+    (FILE * file, const size_t line_count, String * const strings_array);
 
 void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size);
 
@@ -58,7 +45,8 @@ void sort_struct_onegin(String * const strings_array, const size_t line_count, i
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, RED("U must provide file with onegin text in first cli argument and file to result in second cli argument!"));
+        fprintf(stderr, RED("U must provide file with onegin text in first cli argument "
+                            "and file to result in second cli argument!"));
         return 1;
     }
     else if (argc == 2) {
@@ -123,19 +111,6 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-ssize_t file_byte_size(const char * const filename) {
-    assert(filename != NULL && "U must provide valid filename");
-
-    struct stat file_info = {};
-
-    if (stat(filename, &file_info) == -1) {
-        ERROR_MSG("Не удалось получить информацию о файле %s\n", filename);
-        return -1;
-    }
-
-    return (ssize_t) file_info.st_size;
-}
-
 // func is allocate buffer, don't forgot free return value
 char * read_file_to_buf(const char * const filename, size_t * const buf_len) {
     assert(filename != NULL && "U must provide valid filename");
@@ -150,14 +125,16 @@ char * read_file_to_buf(const char * const filename, size_t * const buf_len) {
         return NULL;
     }
 
-    ssize_t byte_len = file_byte_size(filename); // signed чтобы не потерять отрицательное значение в случае ошибки
+    ssize_t byte_len = file_byte_size(filename);
+    // signed чтобы не потерять отрицательное значение в случае ошибки
     if (byte_len <= 0) {
         // Сообщение об ошибке уже выдала file_byte_size
         return NULL;
     }
 
     // Добавляем +1 чтобы при вводе поместился '\0'
-    char * buff = (char *) calloc((size_t) byte_len + 1, sizeof(char)); // TODO don't alloc in func
+    char * buff = (char *) calloc((size_t) byte_len + 1, sizeof(char));
+    // TODO don't alloc in func
     *buf_len = (size_t) byte_len + 1;
 
     if (buff == NULL) {
@@ -207,7 +184,8 @@ ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, con
     return count; // Дошли до haystack_len но не встретили '\0'
 }
 
-ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, const char src, const char dst) {
+ssize_t replace_needle_in_haystack
+    (char * haystack, const size_t haystack_len, const char src, const char dst) {
     assert(haystack != NULL         && "U must pass haystack to count needles");
     assert(src      != '\0'         && "U must pass src other than '\\0'");
 
@@ -259,7 +237,8 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
     strings_array[0] = {.start_ptr = &buf[0]};
 
     // Индекс в массиве строк
-    ssize_t current_string_index = 0; // В 0 уже указан указатель на начало но еще нет указателя на конец
+    // В 0 уже указан указатель на начало но еще нет указателя на конец
+    ssize_t current_string_index = 0;
     // Флаг обработки
     int is_previous_finished = 0; // Когда в предыдущий запишем указатель на конец поменяем на 1
     size_t buf_index = 0;
@@ -269,7 +248,8 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
             buf_ptr = strchr(buf_ptr, '\n'); // Находим конец текущей строки
             if (buf_ptr == NULL) {
                 strings_array[current_string_index].end_ptr = buf + buf_len;
-                break; // Дошли до конца буфера и не встретили \n - значит обработали последнюю строку
+                // Дошли до конца буфера и не встретили \n - значит обработали последнюю строку
+                break;
             }
             ++buf_ptr; // сейчас указываем на \n
             strings_array[current_string_index].end_ptr = buf_ptr;
@@ -282,16 +262,19 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
             if (*buf_ptr == '\0') {
                 // дошли до конца строки не встретив не пробелы,
                 // значит в конце файла были пустые строки их не сохраняем
-                --current_string_index; // Последнее увеличение было лишним и все строки уже обработаны
+                // Последнее увеличение было лишним и все строки уже обработаны
+                --current_string_index;
                 break;
             }
-            strings_array[current_string_index].start_ptr = buf_ptr; // Указываем на найденный символ
+            // Указываем на найденный символ
+            strings_array[current_string_index].start_ptr = buf_ptr;
             is_previous_finished = 0; // Еще не нашли конец текущей строки
         }
     }
 
     *line_count = (size_t) current_string_index;
-    strings_array = (String *) realloc(strings_array, ((size_t) current_string_index + 1) * sizeof(strings_array[0]));
+    strings_array = (String *) realloc(strings_array,
+                                ((size_t) current_string_index + 1) * sizeof(strings_array[0]));
 
     if (strings_array == NULL) {
         ERROR_MSG(""); // realloc уже указал errno
@@ -301,10 +284,11 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
     return strings_array;
 }
 
-void output_strings_array_to_file(FILE * file, const size_t line_count, String * const strings_array) {
-    assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
-    assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
-    assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
+void output_strings_array_to_file
+    (FILE * file, const size_t line_count, String * const strings_array) {
+    assert(strings_array            != NULL  && "strings_array must be not NULL ptr");
+    assert(strings_array->start_ptr != NULL  && "strings_array must be contain valid string start");
+    assert(strings_array->end_ptr   != NULL  && "strings_array must be contain valid string end");
 
     for (size_t i = 0; i < line_count; ++i) {
         fprintf(file, "%zu\t| ", i);
@@ -352,9 +336,12 @@ int string_compare_by_not_alpha_symbols(const String str1, const String str2, in
             move_ptr_to_first_not_alpha_symbol(&start_ptr2, 0);
             // Теперь *str1 и *str2 - точно буквы
 
-            if (*start_ptr1 == '\0' && *start_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
-            if (*start_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
-            if (*start_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
+            // Обе строки закончились -> одинаковые
+            if (*start_ptr1 == '\0' && *start_ptr2 == '\0') return 0;
+            // Закончилась первая -> она короче
+            if (*start_ptr1 == '\0') return -1;
+            // Закончилась вторая -> она короче
+            if (*start_ptr2 == '\0') return 1;
 
             if (tolower(*start_ptr1) != tolower(*start_ptr2))
                 return tolower(*start_ptr2) - tolower(*start_ptr1);
