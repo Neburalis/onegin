@@ -9,8 +9,11 @@
 #include <sys/stat.h>
 
 #include "io_utils.h"
+#include "stringNthong.h"
 
 // Дополнение в терминале ?
+
+using namespace mystr;
 
 #define FREE(ptr)           \
     free(ptr); ptr = NULL;
@@ -22,11 +25,6 @@ struct String {
 
 // func is allocate buffer, don't forgot free return value
 char * read_file_to_buf(const char * const filename, size_t * const buf_len);
-
-ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, const char needle);
-
-ssize_t replace_needle_in_haystack
-    (char * haystack, const size_t haystack_len, const char src, const char dst);
 
 String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count);
 
@@ -154,64 +152,6 @@ char * read_file_to_buf(const char * const filename, size_t * const buf_len) {
     close(fd);
 
     return buff;
-}
-
-ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, const char needle) {
-    assert(haystack != NULL     && "U must pass haystack to count needles");
-    assert(needle   != '\0'       && "U must pass needle other than '\\0'");
-
-    if (haystack == NULL) {
-        errno = EINVAL;
-        ERROR_MSG("U must pass haystack to count needles");
-        return -1;
-    }
-
-    if (needle == '\0') {
-        errno = EINVAL;
-        ERROR_MSG("U must pass needle other than '\\0'");
-        return -1;
-    }
-
-    ssize_t count = 0;
-    char * endptr = haystack + haystack_len;
-    while (haystack != NULL && haystack < endptr) {
-        haystack = strchr(haystack, needle);
-        if (haystack != NULL) {
-            ++count;
-            ++haystack;
-        }
-    }
-    return count; // Дошли до haystack_len но не встретили '\0'
-}
-
-ssize_t replace_needle_in_haystack
-    (char * haystack, const size_t haystack_len, const char src, const char dst) {
-    assert(haystack != NULL         && "U must pass haystack to count needles");
-    assert(src      != '\0'         && "U must pass src other than '\\0'");
-
-    if (haystack == 0) {
-        errno = EINVAL;
-        ERROR_MSG("U must pass haystack to count needles");
-        return -1;
-    }
-
-    if (src == '\0') {
-        errno = EINVAL;
-        ERROR_MSG("U must pass src other than '\\0'");
-        return -1;
-    }
-
-    ssize_t count = 0;
-    char * endptr = haystack + haystack_len;
-    while (haystack != NULL && haystack < endptr) {
-        haystack = strchr(haystack, src);
-        if (haystack != NULL) {
-            ++count;
-            *haystack = dst;
-            ++haystack;
-        }
-    }
-    return count; // Дошли до haystack_len но не встретили '\0'
 }
 
 String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count) {

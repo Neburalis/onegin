@@ -1,3 +1,6 @@
 [submodule "lib/io_utils"]
 	path = lib/io_utils
 	url = git@github.com:Neburalis/io_utils.git
+[submodule "lib/string_and_thong"]
+	path = lib/string_and_thong
+	url = git@github.com:Neburalis/string_and_thong.git
