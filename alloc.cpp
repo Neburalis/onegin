@@ -99,6 +99,8 @@ int main(int argc, char *argv[]) {
                          "Оригинальный текст (чтобы литераторы не съели)\n\n");
     fprintf(result_file, "%s\n", buf); // original onegin
 
+    dont_forget_commit_github;
+
     FREE(buf);
     FREE(strings_array);
     return 0;
