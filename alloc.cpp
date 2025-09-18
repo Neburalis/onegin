@@ -10,18 +10,23 @@
 
 #include "ansi.h"
 
+// Дополнение в терминале ?
+
+#define FREE(ptr)           \
+    free(ptr); ptr = NULL;
+
 #ifdef _DEBUG
     #warning "_DEBUG is ENABLED"
-    #define DEBUG_PRINT(...) \
+    #define DEBUG_PRINT(...)                           \
         fprintf(stderr, __VA_ARGS__); fflush(stderr);
 #else
     #define DEBUG_PRINT(...) (void)0
 #endif
 
-#define ERROR_MSG(format, ...) \
-    fprintf(stderr, \
-            "In " GREEN("%s:%d") ", " YELLOW("%s") ".\n" format "\n", \
-            __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__); fflush(stderr);
+#define ERROR_MSG(format, ...)                                                  \
+    fprintf(stderr,                                                             \
+            "In " GREEN("%s:%d") ", " YELLOW("%s") ".\n" format,                \
+            __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__); perror("");
 
 struct String {
     char * start_ptr;
@@ -29,20 +34,32 @@ struct String {
 };
 
 ssize_t file_byte_size(const char * const filename);
+
+// func is allocate buffer, don't forgot free return value
 char * read_file_to_buf(const char * const filename, size_t * const buf_len);
+
 ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, const char needle);
+
 ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, const char src, const char dst);
+
 String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count);
-void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size);
-int string_compare_by_not_alpha_symbols(const String str1, const String str2);
-int reverse_string_compare_by_not_alpha_symbols(const String str1, const String str2);
-size_t string_print(const String * const str, FILE * const file);
-void sort_struct_onegin(String * const string_array, const size_t line_count);
-void reverse_sort_struct_onegin(String * const string_array, const size_t line_count);
+
 void print_all(const size_t line_count, String * const strings_array);
 
-int main(int argc, char *argv[])
-{
+void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size);
+
+void move_ptr_right_to_first_not_alpha_symbol(char ** ptr);
+void move_ptr_left_to_first_not_alpha_symbol(char ** ptr);
+
+int string_compare_by_not_alpha_symbols(const String str1, const String str2);
+int reverse_string_compare_by_not_alpha_symbols(const String str1, const String str2);
+
+size_t string_print(const String * const str, FILE * const file);
+
+void sort_struct_onegin(String * const strings_array, const size_t line_count);
+void reverse_sort_struct_onegin(String * const strings_array, const size_t line_count);
+
+int main(int argc, char *argv[]) {
     if (argc < 2){
         fprintf(stderr, RED("U must provide file with onegin text in first cli argument!"));
         return 1;
@@ -52,7 +69,7 @@ int main(int argc, char *argv[])
     char * buf = read_file_to_buf(argv[1], &buf_len);
 
     if (buf == NULL) {
-        printf("Произошла ошибка, смотри stderr");
+        ERROR_MSG("Произошла ошибка, смотри stderr");
         return 1;
     }
 
@@ -63,7 +80,7 @@ int main(int argc, char *argv[])
     String * strings_array = split_buf_to_ptr_array(buf, buf_len, &line_count);
 
     if (strings_array == NULL) {
-        printf("Произошла ошибка, смотри stderr");
+        ERROR_MSG("Произошла ошибка, смотри stderr");
         return 1;
     }
 
@@ -80,25 +97,18 @@ int main(int argc, char *argv[])
     printf("\n------------------------------\n");
     printf("%s\n", buf);
 
-    free(buf);
-    free(strings_array);
+    FREE(buf);
+    FREE(strings_array);
     return 0;
 }
 
-void print_all(const size_t line_count, String * const strings_array) {
-    for (size_t i = 0; i < line_count; ++i) {
-        printf("%zu\t", i);
-        string_print(&strings_array[i], stdout);
-    }
-    printf("line count is %zu\n", line_count);
-}
-
 ssize_t file_byte_size(const char * const filename) {
+    assert(filename != NULL && "U must provide valid filename");
+
     struct stat file_info = {};
 
     if (stat(filename, &file_info) == -1) {
-        fprintf(stderr, "Не удалось получить информацию о файле %s\n", filename);
-        perror("");
+        ERROR_MSG("Не удалось получить информацию о файле %s\n", filename);
         return -1;
     }
 
@@ -107,33 +117,37 @@ ssize_t file_byte_size(const char * const filename) {
 
 // func is allocate buffer, don't forgot free return value
 char * read_file_to_buf(const char * const filename, size_t * const buf_len) {
+    assert(filename != NULL && "U must provide valid filename");
+    assert(buf_len != NULL  && "U must provide valid ptr to buf_len");
+
     int fd = open(filename, O_RDONLY);
 
     if (fd == -1) {
-        fprintf(stderr, "Не удалось получить информацию о файле %s\n", filename);
+        errno = ENOENT; // open не выставляет errno
+        ERROR_MSG("Не удалось получить информацию о файле %s\n", filename);
         perror("");
         return NULL;
     }
 
-    ssize_t byte_len = file_byte_size(filename);
+    ssize_t byte_len = file_byte_size(filename); // signed чтобы не потерять отрицательное значение в случае ошибки
     if (byte_len <= 0) {
         // Сообщение об ошибке уже выдала file_byte_size
         return NULL;
     }
 
     // Добавляем +1 чтобы при вводе поместился '\0'
-    char * buff = (char *) calloc(byte_len + 1, sizeof(char)); // TODO
-    *buf_len = byte_len + 1;
+    char * buff = (char *) calloc((size_t) byte_len + 1, sizeof(char)); // TODO don't alloc in func
+    *buf_len = (size_t) byte_len + 1;
 
     if (buff == NULL) {
         close(fd);
-        perror(""); // TODO redundant info LISHNIY
+        perror(""); // errno placed by calloc
         return NULL;
     }
 
-    if (read(fd, buff, byte_len) == -1) { // TODO: don't use too more sys calls
+    if (read(fd, buff, (size_t) byte_len) == -1) { // TODO: don't use too more sys calls
         close(fd);
-        perror("Не удалось прочитать из файла");
+        ERROR_MSG("Не прочитать из файла %s\n", filename);
         return NULL;
     }
 
@@ -150,13 +164,13 @@ ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, con
 
     if (haystack == NULL) {
         errno = EINVAL;
-        perror("U must pass haystack to count needles");
+        ERROR_MSG("U must pass haystack to count needles");
         return -1;
     }
 
     if (needle == '\0') {
         errno = EINVAL;
-        perror("U must pass needle other than '\\0'");
+        ERROR_MSG("U must pass needle other than '\\0'");
         return -1;
     }
 
@@ -173,18 +187,18 @@ ssize_t count_needle_in_haystack(char * haystack, const size_t haystack_len, con
 }
 
 ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, const char src, const char dst) {
-    assert(haystack != NULL     && "U must pass haystack to count needles");
-    assert(src      != '\0'          && "U must pass src other than '\\0'");
+    assert(haystack != NULL         && "U must pass haystack to count needles");
+    assert(src      != '\0'         && "U must pass src other than '\\0'");
 
     if (haystack == 0) {
         errno = EINVAL;
-        perror("U must pass haystack to count needles");
+        ERROR_MSG("U must pass haystack to count needles");
         return -1;
     }
 
     if (src == '\0') {
         errno = EINVAL;
-        perror("U must pass src other than '\\0'");
+        ERROR_MSG("U must pass src other than '\\0'");
         return -1;
     }
 
@@ -202,11 +216,12 @@ ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, c
 }
 
 String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count) {
-    assert(buf != NULL      && "U must pass buffer to split them");
+    assert(buf != NULL          && "U must pass buffer to split them");
+    assert(line_count != NULL   && "U must provide valid ptr to buf_len");
 
     ssize_t lc = -1; // Временная signed переменная чтобы не потерять -1
     if ((lc = count_needle_in_haystack(buf, buf_len, '\n')) < 0) {
-        perror("Negative line count have been received from" GREEN("replace_needle_in_haystack")
+        ERROR_MSG("Negative line count have been received from" GREEN("replace_needle_in_haystack")
                ", see stderr above");
         return NULL;
     }
@@ -216,7 +231,7 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
     // printf("strings_array len is %zu, sizeof is %zu\n", (*line_count) + 1, sizeof(String));
 
     if (strings_array == NULL) {
-        perror("Не удалось выделить память");
+        ERROR_MSG(""); // calloc уже указал errno
         return NULL;
     }
 
@@ -237,7 +252,7 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
             }
             ++buf_ptr; // сейчас указываем на \n
             strings_array[current_string_index].end_ptr = buf_ptr;
-            buf_index = buf_ptr - buf; // Вычисляем текущий индекс в массиве
+            buf_index = (size_t)(buf_ptr - buf); // Вычисляем текущий индекс в массиве
             is_previous_finished = 1;
             ++current_string_index;
         }
@@ -254,15 +269,27 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
         }
     }
 
-    *line_count = current_string_index;
-    strings_array = (String *) realloc(strings_array, (current_string_index + 1) * sizeof(strings_array[0]));
+    *line_count = (size_t) current_string_index;
+    strings_array = (String *) realloc(strings_array, ((size_t) current_string_index + 1) * sizeof(strings_array[0]));
 
     if (strings_array == NULL) {
-        perror("Не удалось выделить память");
+        ERROR_MSG(""); // realloc уже указал errno
         return NULL;
     }
 
     return strings_array;
+}
+
+void print_all(const size_t line_count, String * const strings_array) {
+    assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
+    assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
+    assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
+
+    for (size_t i = 0; i < line_count; ++i) {
+        printf("%zu\t", i);
+        string_print(&strings_array[i], stdout);
+    }
+    printf("line count is %zu\n", line_count);
 }
 
 void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size) {
@@ -275,6 +302,22 @@ void universal_swp(void * const ptr1, void * const ptr2, void * const temp, cons
     memcpy(ptr2, temp, size);
 }
 
+void move_ptr_right_to_first_not_alpha_symbol(char ** ptr) {
+    assert(ptr != NULL);
+    assert(*ptr != NULL);
+
+    while (**ptr != '\0' && !isalpha(**ptr))
+    ++(*ptr);
+}
+
+void move_ptr_left_to_first_not_alpha_symbol(char ** ptr) {
+    assert(ptr != NULL);
+    assert(*ptr != NULL);
+
+    while (**ptr != '\0' && !isalpha(**ptr))
+        --(*ptr);
+}
+
 int string_compare_by_not_alpha_symbols(const String str1, const String str2) {
     assert(str1.start_ptr   != NULL    && "str1 start must be point to not null pointer (string)");
     assert(str1.end_ptr     != NULL    && "str1 end must be point to not null pointer");
@@ -285,8 +328,8 @@ int string_compare_by_not_alpha_symbols(const String str1, const String str2) {
     char * start_ptr2 = str2.start_ptr;
 
     for (;;) {
-        while (*start_ptr1 != '\0' && !isalpha(*start_ptr1)) ++start_ptr1;
-        while (*start_ptr2 != '\0' && !isalpha(*start_ptr2)) ++start_ptr2;
+        move_ptr_right_to_first_not_alpha_symbol(&start_ptr1);
+        move_ptr_right_to_first_not_alpha_symbol(&start_ptr2);
         // Теперь *str1 и *str2 - точно буквы
 
         if (*start_ptr1 == '\0' && *start_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
@@ -311,8 +354,8 @@ int reverse_string_compare_by_not_alpha_symbols(const String str1, const String 
     char * end_ptr2 = str2.end_ptr;
 
     for (;;) {
-        while (*end_ptr1 != '\0' && !isalpha(*end_ptr1)) --end_ptr1;
-        while (*end_ptr2 != '\0' && !isalpha(*end_ptr2)) --end_ptr2;
+        move_ptr_left_to_first_not_alpha_symbol(&end_ptr1);
+        move_ptr_left_to_first_not_alpha_symbol(&end_ptr2);
         // Теперь *str1 и *str2 - точно буквы
 
         if (*end_ptr1 == '\0' && *end_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
@@ -328,15 +371,20 @@ int reverse_string_compare_by_not_alpha_symbols(const String str1, const String 
 }
 
 size_t string_print(const String * const str, FILE * const file) {
+    assert(str            != NULL     && "strings_array must be not NULL ptr");
+    assert(str->start_ptr != NULL     && "strings_array must be contain valid string start");
+    assert(str->end_ptr   != NULL     && "strings_array must be contain valid string end");
+    assert(file           != NULL     && "file must be not NULL");
+
     size_t count = 0;
-#ifdef _DEBUG
+#ifdef _DEBUG // Для дебага выводим много доп инфы
     fprintf(file, "(%p):(%p)[", str, str->start_ptr);
     for (char * ptr = str->start_ptr; ptr < str->end_ptr - 1; ++ptr) {
         putc(*ptr, file);
         ++count;
     }
     fprintf(file, "](%p)(len=%ld)\n", str->end_ptr, str->end_ptr-str->start_ptr);
-#else
+#else // Без дебага пишем чисто строку
     for (char * ptr = str->start_ptr; ptr < str->end_ptr - 1; ++ptr) {
         putc(*ptr, file);
         ++count;
@@ -346,31 +394,35 @@ size_t string_print(const String * const str, FILE * const file) {
     return count;
 }
 
-void sort_struct_onegin(String * const string_array, const size_t line_count) {
-    assert(string_array != NULL     && "string_array must be not null pointer");
+void sort_struct_onegin(String * const strings_array, const size_t line_count) {
+    assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
+    assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
+    assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
 
     String temp = {};
 
     for (size_t i = 0; i < line_count; ++i) {
         for (size_t j = 0; j < i; ++j) {
-            if (string_compare_by_not_alpha_symbols(string_array[i],
-                                                    string_array[j]) > 0)
-                universal_swp(&string_array[i], &string_array[j], &temp, sizeof(string_array[0]));
+            if (string_compare_by_not_alpha_symbols(strings_array[i],
+                                                    strings_array[j]) > 0)
+                universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
         }
     }
 }
 
-void reverse_sort_struct_onegin(String * const string_array, const size_t line_count) {
-    assert(string_array != NULL     && "string_array must be not null pointer");
+void reverse_sort_struct_onegin(String * const strings_array, const size_t line_count) {
+    assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
+    assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
+    assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
 
     String temp = {};
 
     for (size_t i = 0; i < line_count; ++i) {
         for (size_t j = 0; j < i; ++j) {
             // printf("[%zu][%zu]Meow\n", i, j);
-            if (reverse_string_compare_by_not_alpha_symbols(string_array[i],
-                                                            string_array[j]) > 0)
-                universal_swp(&string_array[i], &string_array[j], &temp, sizeof(string_array[0]));
+            if (reverse_string_compare_by_not_alpha_symbols(strings_array[i],
+                                                            strings_array[j]) > 0)
+                universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
         }
     }
 }
