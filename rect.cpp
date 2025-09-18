@@ -38,9 +38,7 @@ void strswp(char * str1, char * str2);
 int main(int argc, char * argv[]) {
     if (argc < 2){
         fprintf(stderr, RED("U must provide file with onegin text in first cli argument!\n"));
-        // exit(1);
         return 1;
-        // abort();
     }
     char * filename = argv[1];
     const size_t max_line_len = 60, line_count = 810;
