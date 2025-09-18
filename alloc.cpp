@@ -48,16 +48,13 @@ void print_all(const size_t line_count, String * const strings_array);
 
 void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size);
 
-void move_ptr_right_to_first_not_alpha_symbol(char ** ptr);
-void move_ptr_left_to_first_not_alpha_symbol(char ** ptr);
+void move_ptr_to_first_not_alpha_symbol(char ** ptr, int reversed);
 
-int string_compare_by_not_alpha_symbols(const String str1, const String str2);
-int reverse_string_compare_by_not_alpha_symbols(const String str1, const String str2);
+int string_compare_by_not_alpha_symbols(const String str1, const String str2, int reversed);
 
 size_t string_print(const String * const str, FILE * const file);
 
-void sort_struct_onegin(String * const strings_array, const size_t line_count);
-void reverse_sort_struct_onegin(String * const strings_array, const size_t line_count);
+void sort_struct_onegin(String * const strings_array, const size_t line_count, int reversed);
 
 int main(int argc, char *argv[]) {
     if (argc < 2){
@@ -87,11 +84,11 @@ int main(int argc, char *argv[]) {
     print_all(line_count, strings_array);
 
     printf("\n------------------------------\n");
-    sort_struct_onegin(strings_array, line_count);
+    sort_struct_onegin(strings_array, line_count, 0);
     print_all(line_count, strings_array);
 
     printf("\n------------------------------\n"); // где-то вот тут зависает
-    reverse_sort_struct_onegin(strings_array, line_count);
+    sort_struct_onegin(strings_array, line_count, 1);
     print_all(line_count, strings_array);
 
     printf("\n------------------------------\n");
@@ -302,23 +299,19 @@ void universal_swp(void * const ptr1, void * const ptr2, void * const temp, cons
     memcpy(ptr2, temp, size);
 }
 
-void move_ptr_right_to_first_not_alpha_symbol(char ** ptr) {
+void move_ptr_to_first_not_alpha_symbol(char ** ptr, int reversed) {
     assert(ptr != NULL);
     assert(*ptr != NULL);
 
-    while (**ptr != '\0' && !isalpha(**ptr))
-    ++(*ptr);
+    while (**ptr != '\0' && !isalpha(**ptr)) {
+        if (reversed)
+            --(*ptr);
+        else
+            ++(*ptr);
+    }
 }
 
-void move_ptr_left_to_first_not_alpha_symbol(char ** ptr) {
-    assert(ptr != NULL);
-    assert(*ptr != NULL);
-
-    while (**ptr != '\0' && !isalpha(**ptr))
-        --(*ptr);
-}
-
-int string_compare_by_not_alpha_symbols(const String str1, const String str2) {
+int string_compare_by_not_alpha_symbols(const String str1, const String str2, int reversed) {
     assert(str1.start_ptr   != NULL    && "str1 start must be point to not null pointer (string)");
     assert(str1.end_ptr     != NULL    && "str1 end must be point to not null pointer");
     assert(str2.start_ptr   != NULL    && "str2 start must be point to not null pointer (string)");
@@ -326,48 +319,41 @@ int string_compare_by_not_alpha_symbols(const String str1, const String str2) {
 
     char * start_ptr1 = str1.start_ptr;
     char * start_ptr2 = str2.start_ptr;
-
-    for (;;) {
-        move_ptr_right_to_first_not_alpha_symbol(&start_ptr1);
-        move_ptr_right_to_first_not_alpha_symbol(&start_ptr2);
-        // Теперь *str1 и *str2 - точно буквы
-
-        if (*start_ptr1 == '\0' && *start_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
-        if (*start_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
-        if (*start_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
-
-        if (tolower(*start_ptr1) != tolower(*start_ptr2))
-            return tolower(*start_ptr2) - tolower(*start_ptr1);
-
-        ++start_ptr1;
-        ++start_ptr2;
-    }
-}
-
-int reverse_string_compare_by_not_alpha_symbols(const String str1, const String str2) {
-    assert(str1.start_ptr   != NULL    && "str1 start must be point to not null pointer (string)");
-    assert(str1.end_ptr     != NULL    && "str1 end must be point to not null pointer");
-    assert(str2.start_ptr   != NULL    && "str2 start must be point to not null pointer (string)");
-    assert(str2.end_ptr     != NULL    && "str2 end must be point to not null pointer");
-
     char * end_ptr1 = str1.end_ptr;
     char * end_ptr2 = str2.end_ptr;
 
-    for (;;) {
-        move_ptr_left_to_first_not_alpha_symbol(&end_ptr1);
-        move_ptr_left_to_first_not_alpha_symbol(&end_ptr2);
-        // Теперь *str1 и *str2 - точно буквы
+    if (reversed)
+        for (;;) {
+            move_ptr_to_first_not_alpha_symbol(&end_ptr1, 1);
+            move_ptr_to_first_not_alpha_symbol(&end_ptr2, 1);
+            // Теперь *str1 и *str2 - точно буквы
 
-        if (*end_ptr1 == '\0' && *end_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
-        if (*end_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
-        if (*end_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
+            if (*end_ptr1 == '\0' && *end_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
+            if (*end_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
+            if (*end_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
 
-        if (tolower(*end_ptr1) != tolower(*end_ptr2))
-            return tolower(*end_ptr2) - tolower(*end_ptr1);
+            if (tolower(*end_ptr1) != tolower(*end_ptr2))
+                return tolower(*end_ptr2) - tolower(*end_ptr1);
 
-        --end_ptr1;
-        --end_ptr2;
-    }
+            --end_ptr1;
+            --end_ptr2;
+        }
+    else
+        for (;;) {
+            move_ptr_to_first_not_alpha_symbol(&start_ptr1, 0);
+            move_ptr_to_first_not_alpha_symbol(&start_ptr2, 0);
+            // Теперь *str1 и *str2 - точно буквы
+
+            if (*start_ptr1 == '\0' && *start_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
+            if (*start_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
+            if (*start_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
+
+            if (tolower(*start_ptr1) != tolower(*start_ptr2))
+                return tolower(*start_ptr2) - tolower(*start_ptr1);
+
+            ++start_ptr1;
+            ++start_ptr2;
+        }
 }
 
 size_t string_print(const String * const str, FILE * const file) {
@@ -394,7 +380,7 @@ size_t string_print(const String * const str, FILE * const file) {
     return count;
 }
 
-void sort_struct_onegin(String * const strings_array, const size_t line_count) {
+void sort_struct_onegin(String * const strings_array, const size_t line_count, int reversed) {
     assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
     assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
     assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
@@ -403,26 +389,17 @@ void sort_struct_onegin(String * const strings_array, const size_t line_count) {
 
     for (size_t i = 0; i < line_count; ++i) {
         for (size_t j = 0; j < i; ++j) {
-            if (string_compare_by_not_alpha_symbols(strings_array[i],
-                                                    strings_array[j]) > 0)
-                universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
-        }
-    }
-}
-
-void reverse_sort_struct_onegin(String * const strings_array, const size_t line_count) {
-    assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
-    assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
-    assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
-
-    String temp = {};
-
-    for (size_t i = 0; i < line_count; ++i) {
-        for (size_t j = 0; j < i; ++j) {
-            // printf("[%zu][%zu]Meow\n", i, j);
-            if (reverse_string_compare_by_not_alpha_symbols(strings_array[i],
-                                                            strings_array[j]) > 0)
-                universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
+            if (reversed) {
+                // printf("[%zu][%zu]Meow\n", i, j);
+                if (string_compare_by_not_alpha_symbols(strings_array[i],
+                                                        strings_array[j], 1) > 0)
+                    universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
+            }
+            else {
+                if (string_compare_by_not_alpha_symbols(strings_array[i],
+                                                        strings_array[j], 0) > 0)
+                    universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
+            }
         }
     }
 }
