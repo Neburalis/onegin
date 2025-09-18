@@ -48,13 +48,13 @@ void output_strings_array_to_file(FILE * file, const size_t line_count, String *
 
 void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size);
 
-void move_ptr_to_first_not_alpha_symbol(char ** ptr, int reversed);
+void move_ptr_to_first_not_alpha_symbol(char ** ptr, int backword);
 
-int string_compare_by_not_alpha_symbols(const String str1, const String str2, int reversed);
+int string_compare_by_not_alpha_symbols(const String str1, const String str2, int backword);
 
 size_t string_print(const String * const str, FILE * const file);
 
-void sort_struct_onegin(String * const strings_array, const size_t line_count, int reversed);
+void sort_struct_onegin(String * const strings_array, const size_t line_count, int backword);
 
 int main(int argc, char *argv[]) {
     if (argc < 2){
@@ -299,12 +299,12 @@ void universal_swp(void * const ptr1, void * const ptr2, void * const temp, cons
     memcpy(ptr2, temp, size);
 }
 
-void move_ptr_to_first_not_alpha_symbol(char ** ptr, int reversed) {
+void move_ptr_to_first_not_alpha_symbol(char ** ptr, int backword) {
     assert(ptr != NULL);
     assert(*ptr != NULL);
 
     while (**ptr != '\0' && !isalpha(**ptr)) {
-        if (reversed)
+        if (backword)
             --(*ptr);
         else // forward
             ++(*ptr);
