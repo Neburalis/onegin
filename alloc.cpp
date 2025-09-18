@@ -84,11 +84,11 @@ int main(int argc, char *argv[]) {
     output_strings_array_to_file(stdout, line_count, strings_array);
 
     printf("\n------------------------------\n");
-    sort_struct_onegin(strings_array, line_count, 0);
+    sort_struct_onegin(strings_array, line_count, 0); // forward sort
     output_strings_array_to_file(stdout, line_count, strings_array);
 
     printf("\n------------------------------\n"); // где-то вот тут зависает
-    sort_struct_onegin(strings_array, line_count, 1);
+    sort_struct_onegin(strings_array, line_count, 1); // backward sort
     output_strings_array_to_file(stdout, line_count, strings_array);
 
     printf("\n------------------------------\n");
@@ -306,12 +306,12 @@ void move_ptr_to_first_not_alpha_symbol(char ** ptr, int reversed) {
     while (**ptr != '\0' && !isalpha(**ptr)) {
         if (reversed)
             --(*ptr);
-        else
+        else // forward
             ++(*ptr);
     }
 }
 
-int string_compare_by_not_alpha_symbols(const String str1, const String str2, int reversed) {
+int string_compare_by_not_alpha_symbols(const String str1, const String str2, int forward) {
     assert(str1.start_ptr   != NULL    && "str1 start must be point to not null pointer (string)");
     assert(str1.end_ptr     != NULL    && "str1 end must be point to not null pointer");
     assert(str2.start_ptr   != NULL    && "str2 start must be point to not null pointer (string)");
@@ -322,23 +322,7 @@ int string_compare_by_not_alpha_symbols(const String str1, const String str2, in
     char * end_ptr1 = str1.end_ptr;
     char * end_ptr2 = str2.end_ptr;
 
-    if (reversed)
-        for (;;) {
-            move_ptr_to_first_not_alpha_symbol(&end_ptr1, 1);
-            move_ptr_to_first_not_alpha_symbol(&end_ptr2, 1);
-            // Теперь *str1 и *str2 - точно буквы
-
-            if (*end_ptr1 == '\0' && *end_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
-            if (*end_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
-            if (*end_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
-
-            if (tolower(*end_ptr1) != tolower(*end_ptr2))
-                return tolower(*end_ptr2) - tolower(*end_ptr1);
-
-            --end_ptr1;
-            --end_ptr2;
-        }
-    else
+    if (forward)
         for (;;) {
             move_ptr_to_first_not_alpha_symbol(&start_ptr1, 0);
             move_ptr_to_first_not_alpha_symbol(&start_ptr2, 0);
@@ -353,6 +337,22 @@ int string_compare_by_not_alpha_symbols(const String str1, const String str2, in
 
             ++start_ptr1;
             ++start_ptr2;
+        }
+    else // backword
+        for (;;) {
+            move_ptr_to_first_not_alpha_symbol(&end_ptr1, 1);
+            move_ptr_to_first_not_alpha_symbol(&end_ptr2, 1);
+            // Теперь *str1 и *str2 - точно буквы
+
+            if (*end_ptr1 == '\0' && *end_ptr2 == '\0') return 0;   // Обе строки закончились -> одинаковые
+            if (*end_ptr1 == '\0') return -1;                   // Закончилась первая -> она короче
+            if (*end_ptr2 == '\0') return 1;                    // Закончилась вторая -> она короче
+
+            if (tolower(*end_ptr1) != tolower(*end_ptr2))
+                return tolower(*end_ptr2) - tolower(*end_ptr1);
+
+            --end_ptr1;
+            --end_ptr2;
         }
 }
 
@@ -380,27 +380,26 @@ size_t string_print(const String * const str, FILE * const file) {
     return count;
 }
 
-void sort_struct_onegin(String * const strings_array, const size_t line_count, int reversed) {
+void sort_struct_onegin(String * const strings_array, const size_t line_count, int backword) {
     assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
     assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
     assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
 
-    String temp = {};
+    auto forward_string_compare = [](const void * vstr1, const void * vstr2) {
+        const String str1 = *((const String *) vstr1);
+        const String str2 = *((const String *) vstr2);
+        return -string_compare_by_not_alpha_symbols(str1, str2, 1);
+    };
+    auto backword_string_compare = [](const void * vstr1, const void * vstr2) {
+        const String str1 = *((const String *) vstr1);
+        const String str2 = *((const String *) vstr2);
+        return -string_compare_by_not_alpha_symbols(str1, str2, 0);
+    };
 
-    for (size_t i = 0; i < line_count; ++i) {
-        for (size_t j = 0; j < i; ++j) {
-            if (reversed) {
-                // printf("[%zu][%zu]Meow\n", i, j);
-                if (string_compare_by_not_alpha_symbols(strings_array[i],
-                                                        strings_array[j], 1) > 0)
-                    universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
-            }
-            else {
-                // printf("[%zu][%zu]Meow\n", i, j);
-                if (string_compare_by_not_alpha_symbols(strings_array[i],
-                                                        strings_array[j], 0) > 0)
-                    universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
-            }
-        }
+    if (backword) {
+        qsort(strings_array, line_count, sizeof(strings_array[0]), (backword_string_compare));
+    }
+    else { // forward
+        qsort(strings_array, line_count, sizeof(strings_array[0]), (forward_string_compare));
     }
 }
