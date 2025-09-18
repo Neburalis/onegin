@@ -57,11 +57,23 @@ size_t string_print(const String * const str, FILE * const file);
 void sort_struct_onegin(String * const strings_array, const size_t line_count, int backword);
 
 int main(int argc, char *argv[]) {
-    if (argc < 2){
-        fprintf(stderr, RED("U must provide file with onegin text in first cli argument!"));
+    if (argc < 2) {
+        fprintf(stderr, RED("U must provide file with onegin text in first cli argument and file to result in second cli argument!"));
         return 1;
     }
+    else if (argc == 2) {
+        fprintf(stderr, RED("U must provide file to result in second cli argument!"));
+    }
 
+    // ------------------------------------------------------------
+    // Открытие файла для результата
+    FILE * result_file = fopen(argv[2], "w");
+    if (!result_file) {
+        ERROR_MSG("Произошла ошибка при попытке открыть %s", argv[2]);
+    }
+
+    // ------------------------------------------------------------
+    // Считывание онегина в буфер
     size_t buf_len = 0;
     char * buf = read_file_to_buf(argv[1], &buf_len);
 
@@ -70,8 +82,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    printf("Было получено %zu байтов (с учетом \\0)", buf_len);
-    printf("\n------------------------------\n");
+    fprintf(result_file, "Было получено %zu байтов (с учетом \\0)", buf_len);
+
+    // ------------------------------------------------------------
+    // Разделение буфера на массив структур String
 
     size_t line_count = 0;
     String * strings_array = split_buf_to_ptr_array(buf, buf_len, &line_count);
@@ -81,18 +95,28 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    output_strings_array_to_file(stdout, line_count, strings_array);
+    // ------------------------------------------------------------
+    // Прямая сортировка (строим энциклопедию Русской жизни)
 
-    printf("\n------------------------------\n");
+    fprintf(result_file, "\n------------------------------                     \n"
+                         "Прямая сортировка (строим энциклопедию Русской жизни)\n\n");
     sort_struct_onegin(strings_array, line_count, 0); // forward sort
-    output_strings_array_to_file(stdout, line_count, strings_array);
+    output_strings_array_to_file(result_file, line_count, strings_array);
 
-    printf("\n------------------------------\n"); // где-то вот тут зависает
+    // ------------------------------------------------------------
+    // Обратная сортировка (строим обратный словарь | словарь рифм)
+
+    fprintf(result_file, "\n------------------------------                            \n"
+                         "Обратная сортировка (строим обратный словарь | словарь рифм)\n\n");
     sort_struct_onegin(strings_array, line_count, 1); // backward sort
-    output_strings_array_to_file(stdout, line_count, strings_array);
+    output_strings_array_to_file(result_file, line_count, strings_array);
 
-    printf("\n------------------------------\n");
-    printf("%s\n", buf);
+    // ------------------------------------------------------------
+    // Оригинальный текст (чтобы литераторы не съели)
+
+    fprintf(result_file, "\n------------------------------              \n"
+                         "Оригинальный текст (чтобы литераторы не съели)\n\n");
+    fprintf(result_file, "%s\n", buf); // original onegin
 
     FREE(buf);
     FREE(strings_array);
@@ -283,7 +307,7 @@ void output_strings_array_to_file(FILE * file, const size_t line_count, String *
     assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
 
     for (size_t i = 0; i < line_count; ++i) {
-        fprintf(file, "%zu\t", i);
+        fprintf(file, "%zu\t| ", i);
         string_print(&strings_array[i], file);
     }
     fprintf(file, "line count is %zu\n", line_count);
