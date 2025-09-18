@@ -44,7 +44,7 @@ ssize_t replace_needle_in_haystack(char * haystack, const size_t haystack_len, c
 
 String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t * const line_count);
 
-void print_all(const size_t line_count, String * const strings_array);
+void output_strings_array_to_file(FILE * file, const size_t line_count, String * const strings_array);
 
 void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size);
 
@@ -81,15 +81,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    print_all(line_count, strings_array);
+    output_strings_array_to_file(stdout, line_count, strings_array);
 
     printf("\n------------------------------\n");
     sort_struct_onegin(strings_array, line_count, 0);
-    print_all(line_count, strings_array);
+    output_strings_array_to_file(stdout, line_count, strings_array);
 
     printf("\n------------------------------\n"); // где-то вот тут зависает
     sort_struct_onegin(strings_array, line_count, 1);
-    print_all(line_count, strings_array);
+    output_strings_array_to_file(stdout, line_count, strings_array);
 
     printf("\n------------------------------\n");
     printf("%s\n", buf);
@@ -277,16 +277,16 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
     return strings_array;
 }
 
-void print_all(const size_t line_count, String * const strings_array) {
+void output_strings_array_to_file(FILE * file, const size_t line_count, String * const strings_array) {
     assert(strings_array            != NULL     && "strings_array must be not NULL ptr");
     assert(strings_array->start_ptr != NULL     && "strings_array must be contain valid string start");
     assert(strings_array->end_ptr   != NULL     && "strings_array must be contain valid string end");
 
     for (size_t i = 0; i < line_count; ++i) {
-        printf("%zu\t", i);
-        string_print(&strings_array[i], stdout);
+        fprintf(file, "%zu\t", i);
+        string_print(&strings_array[i], file);
     }
-    printf("line count is %zu\n", line_count);
+    fprintf(file, "line count is %zu\n", line_count);
 }
 
 void universal_swp(void * const ptr1, void * const ptr2, void * const temp, const size_t size) {
@@ -396,6 +396,7 @@ void sort_struct_onegin(String * const strings_array, const size_t line_count, i
                     universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
             }
             else {
+                // printf("[%zu][%zu]Meow\n", i, j);
                 if (string_compare_by_not_alpha_symbols(strings_array[i],
                                                         strings_array[j], 0) > 0)
                     universal_swp(&strings_array[i], &strings_array[j], &temp, sizeof(strings_array[0]));
