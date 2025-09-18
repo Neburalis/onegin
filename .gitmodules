@@ -1,0 +1,3 @@
+[submodule "lib/io_utils"]
+	path = lib/io_utils
+	url = git@github.com:Neburalis/io_utils.git
