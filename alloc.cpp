@@ -48,9 +48,14 @@ int main(int argc, char *argv[]) {
 
     // ------------------------------------------------------------
     // Открытие файла для результата
-    FILE * result_file = fopen(argv[2], "w");
-    if (!result_file) {
-        ERROR_MSG("Произошла ошибка при попытке открыть %s", argv[2]);
+    FILE * result_file = stdout;
+    // printf("%s\n", argv[2]);
+    // printf("%d\n", strcmp(argv[2], "stdout") == 0);
+    if (strcmp(argv[2], "--") != 0) {
+        result_file = fopen(argv[2], "w");
+        if (!result_file) {
+            ERROR_MSG("Произошла ошибка при попытке открыть %s", argv[2]);
+        }
     }
 
     // ------------------------------------------------------------
@@ -99,7 +104,7 @@ int main(int argc, char *argv[]) {
                          "Оригинальный текст (чтобы литераторы не съели)\n\n");
     fprintf(result_file, "%s\n", buf); // original onegin
 
-    dont_forget_commit_github;
+    DONT_FORGET_COMMIT_GITHUB();
 
     FREE(buf);
     FREE(strings_array);
@@ -118,7 +123,7 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
     }
     *line_count = (size_t) lc + 1;
     // printf("line_count is %zu\n", *line_count);
-    String * strings_array = (String *) calloc(*line_count + 1, sizeof(String));
+    String * strings_array = (String *) calloc(*line_count + 2, sizeof(String));
     // printf("strings_array len is %zu, sizeof is %zu\n", (*line_count) + 1, sizeof(String));
 
     if (strings_array == NULL) {
@@ -143,7 +148,7 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
                 // Дошли до конца буфера и не встретили \n - значит обработали последнюю строку
                 break;
             }
-            ++buf_ptr; // сейчас указываем на \n
+            ++buf_ptr; // теперь указываем на \n
             strings_array[current_string_index].end_ptr = buf_ptr;
             buf_index = (size_t)(buf_ptr - buf); // Вычисляем текущий индекс в массиве
             is_previous_finished = 1;
@@ -156,6 +161,7 @@ String * split_buf_to_ptr_array(char * const buf, const size_t buf_len, size_t *
                 // значит в конце файла были пустые строки их не сохраняем
                 // Последнее увеличение было лишним и все строки уже обработаны
                 --current_string_index;
+                strings_array[current_string_index].end_ptr = buf_ptr;
                 break;
             }
             // Указываем на найденный символ
@@ -199,6 +205,7 @@ void universal_swp(void * const ptr1, void * const ptr2, void * const temp, cons
     memcpy(ptr2, temp, size);
 }
 
+// TODO universal compare run from lambda
 int string_compare_by_not_alpha_symbols(const String str1, const String str2, int forward) {
     assert(str1.start_ptr   != NULL    && "str1 start must be point to not null pointer (string)");
     assert(str1.end_ptr     != NULL    && "str1 end must be point to not null pointer");
